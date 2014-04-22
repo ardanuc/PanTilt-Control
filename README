@@ -1,0 +1,22 @@
+Arduino Code for PAn Tit Control of the PAn-Tilt Stage
+Originally written for Arduino MEGA 2560
+
+Controls 12 motor
+ The user enters the index of the number starting from 1.
+ Or the user can also enter two numbers which would be the index of row and column both starting from 1
+
+  Pin orderfor a given motor is
+  Left, right, Up, Down
+
+  Once entering the state: The user can control the motors using
+
+  'a': Left
+  's': Right
+  'w': Up
+  'z': Down
+
+  Other letters stops all the motors
+   To enter index: ENter like "3 4\n" for two index (row, col0)=(3,4) or just "2\n" to control the second motor where"\n" indicates the newlin character
+
+
+
