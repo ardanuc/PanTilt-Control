@@ -109,7 +109,8 @@ REASON WHATSOEVER.
 
 #define DEBUGFLAG 0
 
-
+#define  TILTEPSILON 6;
+#define MOVING_AVERAGE_COUNT=25;
 
 //Input String from Serial
 String inputString = "";
@@ -124,10 +125,11 @@ int selectedRow = 0;
 int selectedCol = 0;
 
 
-//temporary numbers to parse string
+//temporary numbers to parse strings or other tasks
 int parse_no1;
 int parse_no2;
 int tempVar;
+long tempVar2;
 
 
 //# of motors in row and column
@@ -165,7 +167,6 @@ const int MinTiltReading = -856;
 int targetTiltReading;
 int currentTiltReading;
 
-const int TILTEPSILON=6;
 
 
 // variables to read the pulse widths:
@@ -660,11 +661,45 @@ MoveDownSelectedMotor();
     
     printAccelarationXY();
     printMagneticFieldXYZ();
-    Serial.println( " Still!!!");
+    Serial.println( );
 }
+
+
 
 // Turn off since we are done or another input is entered
 TurnOffSelectedMotor();
+
+// Now do low pass filtering and moving as number of necessary
+
+while ((abs(currentTiltReading-targetTilt)>=TILTEPSILON) && !Serial.available())
+{
+// use a temp variable for sumof the moving average
+tempVar2=0
+for (tempvar=0;tempvar<MOVING_AVERAGE_COUNT>>2;tempvar++)
+{
+  tempVar2+=ReadAccelerationX();
+
+}
+
+currentTiltReading=tempVar2/MOVING_AVERAGE_COUNT;
+
+if (currentTiltReading>targetTilt)
+{
+// move up
+MoveUpSelectedMotor(); 
+
+else
+// move down
+MoveDownSelectedMotor(); 
+
+}
+
+Serial.print("Precision: Current: ");
+Serial.print(currentTiltReading);
+Serial.print(" Target: ");
+Serial.println(targetTilt);
+}
+
 
 }
 
