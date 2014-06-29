@@ -1,0 +1,32 @@
+;; This buffer is for notes you don't want to save, and for Lisp evaluation.
+;; If you want to create a file, visit that file with C-x C-f,
+;; then enter the text in that file's own buffer.
+
+06/29/14
+
+
+ /* Comand database START
+      UP  : Move UP
+      DN  : Move DOWN
+      LT  : Move LEFT
+      RT  : Move RIGHT
+      BX? : Send BX Value
+      BY? : Send BY Value
+      BZ? : Send BZ Value
+      BXYZ? :Send BX"\t"BY"\t"BZ"\n"
+      ACCX? : Send ACCX Value
+      ACCY? : Send ACCY Value
+      ACCZ? : Send ACCZ Value
+      ACCXYZ? : Send ACCX"\t"ACCY"\t"ACCZ"\n" Value
+      MAGHDG? : Send Magnetic Heding Angle in Degrees
+      STOPUD  : Stop Up-Down Motor of the Selected Mirror
+      STOPLR  : Stop Left-Right Mirror of the Selected Mirror
+      STOP   : Stop current selected motor
+      STOPALL : Stop all the motors
+      MVTT1D  :  Move to target 1D, takes two  parameters
+
+
+ $MAGHDG?!
+ $MVTT1D 1 20000!
+
+http://www.emacswiki.org/emacs/CopyingWholeLines#toc5
