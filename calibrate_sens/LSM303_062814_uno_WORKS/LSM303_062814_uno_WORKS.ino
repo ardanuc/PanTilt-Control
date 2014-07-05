@@ -1,4 +1,12 @@
 /*
+
+-Revised on 06/30/2014
+Added commands to control a laser pointer
+
+
+-Revision on 06/29/2014
+Modified to  handle an arbitrary number of input arguments as part of the command string
+
 Revision on :06/28/2014
 -Corrected the bug when the interpreter accepted commands that did not 
 startwith the <CommandStartChar>
@@ -41,6 +49,10 @@ const int AzimLeftPin_init = 2;
 const int AzimRightPin_init = 3;
 const int ElevUpPin_init = 4;
 const int ElevDownPin_init = 5;
+
+// Laser Pointer Pin-- MAke sure it does not collide with motor control pins
+define LASER_POINTER_PIN 13
+
     
  CONNECTIONS for Micro R3   
  Arduino      LSM
@@ -65,12 +77,12 @@ const int ElevDownPin_init = 9;
 #include "specialfuncs.h"
 
 // Maximum length of the commands from the serial port including start and end characters
-#define MAX_COMMAND_STRING_LENGTH 20
+#define MAX_COMMAND_STRING_LENGTH 40
 #define MAX_COMMAND_STRINGSTARTTEXT_LENGTH 10
+#define MAX_NUMBER_ARGUMETS 4
+#define DEBUGFLAG 0
 
-#define DEBUGFLAG 1
-
-
+#define LASER_POINTER_PIN 13
 
 
 //Input String from Serial
@@ -93,8 +105,7 @@ int selectedCol = 0;
 
 
 //temporary numbers to parse strings or other tasks
-long parse_no1 = 0;
-long parse_no2 = 0;
+long parse_no_array[MAX_NUMBER_ARGUMETS]={0};
 int tempVar;
 
 //
@@ -107,6 +118,9 @@ const char CommandEndChar = '!';
 // index of the CommandStartChar and CommandEndChar in the inputString
 short CommandStartIndex;
 short CommandEndIndex;
+
+// number of input arguments
+short CountParseNo=0;
 
 //# of motors in row and column
 const int nRowMotor = 1;
@@ -126,10 +140,8 @@ const int ElevUpPin_init = 4;
 const int ElevDownPin_init = 5;
 
 
-
-
-
-
+// Laser on-off state
+bool LaserState= false;
 
 
 // variable to keep track of whhether the motor is active or not
@@ -149,6 +161,13 @@ LSM303 compass;
 void setup() {
   // initialize serial communication:
   Serial.begin(9600);
+  
+  // declare laser pin as the output, but make sure it does not coincide with mirror pins
+ // initialize the digital pin as an output.
+  pinMode(LASER_POINTER_PIN, OUTPUT);
+  LaserState= false;
+  //initially turn off the laser
+  digitalWrite(LASER_POINTER_PIN, LaserState);
 
   /* Initialise the Wire library */
   Wire.begin();
@@ -297,11 +316,16 @@ void loop() {
 
 
     if (stringComplete) {
+      
+      // Remove the whitespace at the beginning and at the end
+      
+
+      
       // Start Parsing
       /*This script assummes a command of the form
       <Text Command>[<space>< Number 1 >][<space><Number 2>]
       where <Number 1> and <Number 2> are optional. If they exist they are stored in
-      variables parse_no1 and parse_no2, otherwise they are assigned a value of -
+      variables parse_no_array[0] and parse_no_array[1], otherwise they are assigned a value of -
        */
       // Search for the start command and end command identifiers
       CommandStartIndex = inputString.indexOf(CommandStartChar);
@@ -323,12 +347,19 @@ void loop() {
       if ((CommandEndIndex > CommandStartIndex + 1) && (CommandStartIndex!=-1))
       {
         commandString = inputString.substring(CommandStartIndex + 1, CommandEndIndex);
-
+            
+            //trim the white space at the beginning and end
+            commandString.trim();
+            
         //Serial.println("Command String is "+commandString);
         tempVar = commandString.indexOf(' ');
-
-        if (tempVar >= 1)
+     
+ 
+        if (tempVar >= 1) 
         {
+          
+
+          
           // then there is at least one character before thespace
           commandStringStartText = commandString.substring(0, tempVar);
           // Now we need tounderstand if there is other whitespace in the remaining string
@@ -338,31 +369,50 @@ void loop() {
 
           //find the whitespace index
           tempVar = inputString.indexOf(' ');
-          // If there is a whitespace
-          if (tempVar >= 0) {
-            parse_no1 = inputString.substring(0, tempVar).toInt();
-            parse_no2 = inputString.substring(tempVar + 1).toInt();
+         
+         
 
-          }
-          else
-          {
-            parse_no1 = inputString.substring(0, tempVar).toInt();
+         
+         //parse the numbers with a while loop
+          // If there is a whitespace or some non empty string , proviede that you have not parsed
+         // all the numbes
+          
+          
+            while (((tempVar>=0) || (inputString.length()>0)) && (CountParseNo<MAX_NUMBER_ARGUMETS))
+            {
+           
+            
+            parse_no_array[CountParseNo] = inputString.substring(0, tempVar).toInt();
+            CountParseNo=CountParseNo+1;
+            
 
-            //parse_no2=-1 indicates that we will just use the number one as the single number index
-            //parse_n1=
-            parse_no2 = -1;
-
-          }
-
-
+            
+            //Get the remaining string after white space
+            if (tempVar!=-1)
+            inputString = inputString.substring(tempVar + 1);
+            else
+            // since there is nothing left
+            inputString="";
+            
+          
+            
+            
+              //find the whitespace index
+          tempVar = inputString.indexOf(' ');
+            }
+        
+           
         }
         else
         {
           // no space so there is no numbers to be parsed following the StartText
           commandStringStartText = commandString;
           // assign them to a negative number although we will not be using
-          parse_no1 = -1;
-          parse_no2 = -1;
+          CountParseNo=0;
+          //set the rest of the parse no parameters to -1
+          for (tempVar=0;tempVar<MAX_NUMBER_ARGUMETS;tempVar++)
+          {parse_no_array[tempVar] = -1;}
+          
         }
       }
 
@@ -371,9 +421,13 @@ void loop() {
       // Print the text
       Serial.println(" Command Text is " + commandStringStartText);
       Serial.print("Numbers are ");
-      Serial.print(parse_no1);
-      Serial.print(" and ");
-      Serial.println(parse_no2);
+      for (tempVar=0;tempVar<CountParseNo;tempVar++)
+          {
+           snprintf(report, sizeof(report), "No-%d: %d,\t",
+           tempVar+1,parse_no_array[tempVar] );
+           Serial.print(report);
+          }
+      Serial.println();
 #endif
 
 
@@ -391,6 +445,9 @@ void loop() {
       ACCZ? : Send ACCZ Value
       ACCXYZ? : Send ACCX"\t"ACCY"\t"ACCZ"\n" Value
       MAGHDG? : Send Magnetic Heding Angle in Degrees
+      LASON   : Turn the laser on
+      LASOFF  : Turn the laser off
+      LASTOG  : Toggle laser state
       STOPUD  : Stop Up-Down Motor of the Selected Mirror
       STOPLR  : Stop Left-Right Mirror of the Selected Mirror
       STOP   : Stop current selected motor
@@ -465,6 +522,22 @@ void loop() {
 
         Serial.println(ReadMagneticHeading()); 
       }
+         else if (commandStringStartText == "LASON")
+      {
+
+      LaserUpdateState(true);
+      }
+         else if (commandStringStartText == "LASOFF")
+      {
+
+         LaserUpdateState(false);
+      }
+          else if (commandStringStartText == "LASTOG")
+      {
+
+             LaserUpdateState(!LaserState);
+      }
+
       else if (commandStringStartText == "MVTT1D")
       {
         
@@ -489,9 +562,9 @@ void loop() {
         // and the other is the raw target value. Do range checking before 
         //calling the llllllfunction
 
-        if ((parse_no1 == 1) || (parse_no1 == 2) && (parse_no2!=-1))
+        if ((parse_no_array[0] == 1) || (parse_no_array[0] == 2) && (parse_no_array[1]!=-1))
           
-          if (parse_no1==1)
+          if (parse_no_array[0]==1)
           { 
             
         // Pointer to function to compare against to target value
@@ -508,10 +581,10 @@ void loop() {
             
             // Azimuth axis, so run the angular feedback loop
                          
-          movetoTarget_1D_angular ( parse_no2, ReadFunctionPt_l,
+          movetoTarget_1D_angular ( parse_no_array[1], ReadFunctionPt_l,
            MovePositiveFunctionPt,MoveNegativeFunctionPt);
           }
-        else if (parse_no1==2)
+        else if (parse_no_array[0]==2)
         {
 
           
@@ -525,7 +598,7 @@ void loop() {
         MoveNegativeFunctionPt= &MoveUpSelectedMirror;
           
           // Elevation axis, so run the linear
-          movetoTarget_1D_linear ( parse_no2, ReadFunctionPt_i,
+          movetoTarget_1D_linear ( parse_no_array[1], ReadFunctionPt_i,
           MovePositiveFunctionPt,MoveNegativeFunctionPt);
         }
            
@@ -790,8 +863,19 @@ long ReadMagneticHeading()
 
 
 
+/*------ LASER CONTROL ----------*/
+/* ------- START ----------------*/
 
+// Laser Update State updates the laser status with LaserStateInput
+void LaserUpdateState(bool LaserStateInput)
+{
+    LaserState=LaserStateInput;
+  digitalWrite(LASER_POINTER_PIN, LaserState);
+   
+}
 
+/*------ LASER CONTROL ----------*/
+/* ------- END ----------------*/
 
 // moves up selected motor
 void MoveUpSelectedMirror (void) {
@@ -1012,7 +1096,7 @@ void ResetInputString() {
   inputString = "";
   commandStringStartText = "";
   commandString = "";
-  parse_no1 = 0;
-  parse_no2 = 0;
-
+  CountParseNo=0;
+    for (tempVar=0;tempVar<MAX_NUMBER_ARGUMETS;tempVar++)
+          {parse_no_array[tempVar] = 0;}
 }

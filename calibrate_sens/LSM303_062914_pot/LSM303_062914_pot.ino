@@ -1,4 +1,9 @@
 /*
+
+-Revised on 06/30/2014
+Added commands to control a laser pointer
+
+
 -Revision on 06/29/2014
 Modified to  handle an arbitrary number of input arguments as part of the command string
 
@@ -44,6 +49,13 @@ const int AzimLeftPin_init = 2;
 const int AzimRightPin_init = 3;
 const int ElevUpPin_init = 4;
 const int ElevDownPin_init = 5;
+
+// Laser Pointer Pin-- MAke sure it does not collide with motor control pins
+define LASER_POINTER_PIN 13
+
+#define AZIM_POTENC_PIN A0
+#define ELEV_POTENC_PIN A1
+
     
  CONNECTIONS for Micro R3   
  Arduino      LSM
@@ -59,6 +71,8 @@ const int AzimRightPin_init = 7;
 const int ElevUpPin_init = 8;
 const int ElevDownPin_init = 9;
     
+    
+    
  */
 
 /* Include the standard Wire library */
@@ -71,10 +85,29 @@ const int ElevDownPin_init = 9;
 #define MAX_COMMAND_STRING_LENGTH 40
 #define MAX_COMMAND_STRINGSTARTTEXT_LENGTH 10
 #define MAX_NUMBER_ARGUMETS 4
-#define DEBUGFLAG 0
+#define DEBUGFLAG 1
 
+#define LASER_POINTER_PIN 13
 
+// Potentiometer Encoder Pins for Azimuth and Elevation Axis
+#define AZIM_POTENC_PIN A0
+#define ELEV_POTENC_PIN A1
 
+// Flag to increase the ADC sampling call by 8 times, default prescaler is 128
+// this reduces it to 16
+// See the code in: http://forum.arduino.cc/index.php/topic,6549.0.html
+#define FASTADC 1
+
+// defines for setting and clearing register bits
+#ifndef cbi
+#define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
+#endif
+#ifndef sbi
+#define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
+#endif
+
+// This is for different sensor calibrations
+# define MAG_SENSOR_ID 2
 
 //Input String from Serial
 String inputString = "";
@@ -131,10 +164,8 @@ const int ElevUpPin_init = 4;
 const int ElevDownPin_init = 5;
 
 
-
-
-
-
+// Laser on-off state
+bool LaserState= false;
 
 
 // variable to keep track of whhether the motor is active or not
@@ -154,6 +185,13 @@ LSM303 compass;
 void setup() {
   // initialize serial communication:
   Serial.begin(9600);
+  
+  // declare laser pin as the output, but make sure it does not coincide with mirror pins
+ // initialize the digital pin as an output.
+  pinMode(LASER_POINTER_PIN, OUTPUT);
+  LaserState= false;
+  //initially turn off the laser
+  digitalWrite(LASER_POINTER_PIN, LaserState);
 
   /* Initialise the Wire library */
   Wire.begin();
@@ -174,11 +212,25 @@ void setup() {
   //  compass.m_max = (LSM303::vector<int16_t>){+32767, +32767, +32767};
 
 
+#if MAG_SENSOR_ID==1
   compass.m_min = (LSM303::vector<int16_t>) {
     -1829, -1831, -1417
   };
   compass.m_max = (LSM303::vector<int16_t>) {
-    +2099, +1865, +2649
+    +2099, +1865, +2649};
+    
+  #endif
+
+#if MAG_SENSOR_ID==2
+  compass.m_min = (LSM303::vector<int16_t>) {
+    -1579, -1642, -2834
+  };
+  compass.m_max = (LSM303::vector<int16_t>) {
+    +1488, +1240, +364};
+    
+  #endif  
+ 
+ 
     
      /*
   When given no arguments, the heading() function returns the angular
@@ -198,7 +250,16 @@ void setup() {
   
   to use the +Z axis as a reference.
   */
-  };
+  
+
+  #if FASTADC
+  // set prescale to 16
+  sbi(ADCSRA,ADPS2) ;
+  cbi(ADCSRA,ADPS1) ;
+  cbi(ADCSRA,ADPS0) ;
+  #endif
+
+  
 
 
   //Reserve 10 bytes for the input String
@@ -381,7 +442,9 @@ void loop() {
             inputString="";
             
           
-            
+            //MAke sure there is no more whitespace 
+            // caller might add more than one space
+            inputString.trim();
             
               //find the whitespace index
           tempVar = inputString.indexOf(' ');
@@ -431,6 +494,11 @@ void loop() {
       ACCZ? : Send ACCZ Value
       ACCXYZ? : Send ACCX"\t"ACCY"\t"ACCZ"\n" Value
       MAGHDG? : Send Magnetic Heding Angle in Degrees
+      AZENC?  : Send Azim Potentiometer Encoder Raw Data
+      ELENC?  : Send Elevation Potentiometer Encoder Raw Data
+      LASON   : Turn the laser on
+      LASOFF  : Turn the laser off
+      LASTOG  : Toggle laser state
       STOPUD  : Stop Up-Down Motor of the Selected Mirror
       STOPLR  : Stop Left-Right Mirror of the Selected Mirror
       STOP   : Stop current selected motor
@@ -505,6 +573,32 @@ void loop() {
 
         Serial.println(ReadMagneticHeading()); 
       }
+       else if (commandStringStartText == "AZENC?")
+      {
+
+        Serial.println(analogRead(AZIM_POTENC_PIN)); 
+      }
+         else if (commandStringStartText == "ELENC?")
+      {
+
+        Serial.println(analogRead(ELEV_POTENC_PIN)); 
+      }
+         else if (commandStringStartText == "LASON")
+      {
+
+      LaserUpdateState(true);
+      }
+         else if (commandStringStartText == "LASOFF")
+      {
+
+         LaserUpdateState(false);
+      }
+          else if (commandStringStartText == "LASTOG")
+      {
+
+             LaserUpdateState(!LaserState);
+      }
+
       else if (commandStringStartText == "MVTT1D")
       {
         
@@ -529,14 +623,14 @@ void loop() {
         // and the other is the raw target value. Do range checking before 
         //calling the llllllfunction
 
-        if ((parse_no_array[0] == 1) || (parse_no_array[0] == 2) && (parse_no_array[1]!=-1))
+        if  (parse_no_array[1]!=-1)
           
-          if (parse_no_array[0]==1)
-          { 
-            
+          switch (parse_no_array[0])
+        {  
+          case 0:   //Azim using magnetic heading
+          {             
         // Pointer to function to compare against to target value
-       
-        //ReadFunctionPt = &ReadMagneticHeading; 
+        ReadFunctionPt_l = &ReadMagneticHeading; 
         
         
         // Pointer to function to action towards increasing the Value Read by ReadFunctionPt()
@@ -548,16 +642,16 @@ void loop() {
             
             // Azimuth axis, so run the angular feedback loop
                          
-          movetoTarget_1D_angular ( parse_no_array[1], ReadFunctionPt_l,
+          movetoTarget_1D_angular ( parse_no_array[0] , parse_no_array[1], ReadFunctionPt_l,
            MovePositiveFunctionPt,MoveNegativeFunctionPt);
+           break;
           }
-        else if (parse_no_array[0]==2)
+        case 1:   //Elevation using tilt Sensor
         {
-
           
            // Pointer to function to compare against to target value
+              ReadFunctionPt_i = & ReadAccelerationY; 
        
-       // ReadFunctionPt = & ReadAccelerationY; 
         // Pointer to function to action towards increasing the Value Read by ReadFunctionPt()
         MovePositiveFunctionPt = &MoveDownSelectedMirror;
 
@@ -565,13 +659,52 @@ void loop() {
         MoveNegativeFunctionPt= &MoveUpSelectedMirror;
           
           // Elevation axis, so run the linear
-          movetoTarget_1D_linear ( parse_no_array[1], ReadFunctionPt_i,
+          movetoTarget_1D_linear ( parse_no_array[0] , parse_no_array[1], ReadFunctionPt_i,
           MovePositiveFunctionPt,MoveNegativeFunctionPt);
+          break;
         }
            
-           else 
-          {Serial.println("Wrong Axis!");}
+           case 2:   //Azim using Encoder
+        {
+          
+           // Pointer to function to compare against to target value
+              ReadFunctionPt_i = & ReadAZIM_PotentiometerEncoder; 
+       
+        // Pointer to function to action towards increasing the Value Read by ReadFunctionPt()
+        MovePositiveFunctionPt = &MoveRightSelectedMirror;
 
+        // Pointer to function to action towards decreasing the Value Read by ReadFunctionPt()
+        MoveNegativeFunctionPt= &MoveLeftSelectedMirror;
+          
+          // Elevation axis, so run the linear
+          movetoTarget_1D_linear ( parse_no_array[0] , parse_no_array[1], ReadFunctionPt_i,
+          MovePositiveFunctionPt,MoveNegativeFunctionPt);
+          break;
+        }
+            case 3:   //Elev using Encoder
+        {
+          
+           // Pointer to function to compare against to target value
+              ReadFunctionPt_i = & ReadELEV_PotentiometerEncoder; 
+       
+        // Pointer to function to action towards increasing the Value Read by ReadFunctionPt()
+        MovePositiveFunctionPt = &MoveUPSelectedMirror;
+
+        // Pointer to function to action towards decreasing the Value Read by ReadFunctionPt()
+        MoveNegativeFunctionPt= &MoveDOWNSelectedMirror;
+          
+          // Elevation axis, so run the linear
+          movetoTarget_1D_linear ( parse_no_array[0] , parse_no_array[1], ReadFunctionPt_i,
+          MovePositiveFunctionPt,MoveNegativeFunctionPt);
+          break;
+        }
+            
+                   
+           
+           
+           default: 
+          {Serial.println("Wrong Axis!");}
+        }//switch
       }
 
       else if (commandStringStartText == "STOPUD")
@@ -830,8 +963,41 @@ long ReadMagneticHeading()
 
 
 
+/*------ LASER CONTROL ----------*/
+/* ------- START ----------------*/
+
+// Laser Update State updates the laser status with LaserStateInput
+void LaserUpdateState(bool LaserStateInput)
+{
+    LaserState=LaserStateInput;
+  digitalWrite(LASER_POINTER_PIN, LaserState);
+   
+}
+
+/*------ LASER CONTROL ----------*/
+/* ------- END ----------------*/
 
 
+/*------ READ ENCODER  ----------*/
+/* ------- START ----------------*/
+
+
+// Read ADC output from the potentiometer reading of the azimuth
+int ReadAZIM_PotentiometerEncoder()
+{
+   return analogRead(AZIM_POTENC_PIN);
+}
+
+
+// Read ADC output from the potentiometer reading of the azimuth
+int ReadELEV_PotentiometerEncoder()
+{
+   return analogRead(ELEV_POTENC_PIN);
+}
+
+
+/*------ READ ENCODER ----------*/
+/* ------- END ----------------*/
 
 // moves up selected motor
 void MoveUpSelectedMirror (void) {

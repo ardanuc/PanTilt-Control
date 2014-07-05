@@ -1,4 +1,4 @@
-#define DEBUGFLAG 1
+#define DEBUGFLAG 0
 
 // AXIS LABELS
 enum AxisLabelType {AZIM_AXIS = 1, ELEV_AXIS = 2};
@@ -125,15 +125,20 @@ void movetoTarget_1D_angular ( const int TargetReading,
 
   //initialize the sum
   temp_LP = Nsamples_LP * CurrentReading;
-
+ 
+  // update the low passed version
+   CurrentReading_LP=CurrentReading;
 
   // Look at the target value and try to go to the closerl
 
 
   // main feedback loop
+  #if DEBUGFLAG
   Serial.println("Moving: START!");
-
-  while (abs(CurrentReading_LP - TargetReading_R) > epsilon_axis)
+ 
+ #endif
+ 
+  while (abs(CurrentReading - TargetReading_R) > epsilon_axis)
   {
     if 
     (
@@ -146,12 +151,16 @@ void movetoTarget_1D_angular ( const int TargetReading,
     )
 
     {
+      #if DEBUGFLAG
       Serial.print("Running positive function");
+      #endif
       MovePositiveFunctionPt();
     }
     else
     {
+      #if DEBUGFLAG
       Serial.print("Running negative function");
+      #endif
       MoveNegativeFunctionPt();
     }
 
@@ -190,24 +199,11 @@ void movetoTarget_1D_angular ( const int TargetReading,
 
 
 #if DEBUGFLAG
-  Serial.print(" ext1: ");
-  Serial.print(ext_1);
-  Serial.print(" ext2: ");
-  Serial.print(ext_2);
-  Serial.print(" ACTU: ");
-  Serial.print(CurrentReading);
-  Serial.print(" LP: ");
-  Serial.print(CurrentReading_LP);
-  Serial.print(" Target: ");
-  Serial.print(TargetReading);
-  Serial.print(" Target-R: ");
-  Serial.println(TargetReading_R);
-  Serial.print(" flag_dead_zone");
-  Serial.println(flag_dead_zone);
 
-#endif
 
   Serial.println("Moving: DONE!");
+
+#endif
 
   //Since we are done-- turn off the motor
   TurnOffSelectedMirror();
@@ -281,6 +277,8 @@ void movetoTarget_1D_linear ( const int TargetReading,
 
   //Read the current value
   CurrentReading = ReadFunctionPt();
+  
+
 
   //initialize the low pass filtered version with this inital reading
 
@@ -292,13 +290,17 @@ void movetoTarget_1D_linear ( const int TargetReading,
   //initialize the sum
   temp_LP = Nsamples_LP * CurrentReading;
 
-
+  // update the low passed version
+   CurrentReading_LP=CurrentReading;
   // Look at the target value and try to go to the closerl
 
   // main feedback loop
+  #if DEBUGFLAG
   Serial.println("Moving!");
 
-  while (abs(CurrentReading_LP - TargetReading_R) > epsilon_axis)
+ #endif
+ 
+  while (abs(CurrentReading - TargetReading_R) > epsilon_axis)
   {
     if (CurrentReading >= TargetReading_R)
       MoveNegativeFunctionPt();
@@ -332,6 +334,10 @@ void movetoTarget_1D_linear ( const int TargetReading,
 
   }
 
+#if DEBUGFLAG
+  Serial.println("Moving: DONE!");
+#endif  
+  
   //Since we are done-- turn off the motor
   TurnOffSelectedMirror();
 

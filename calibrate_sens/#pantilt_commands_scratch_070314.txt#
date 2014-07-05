@@ -2,7 +2,9 @@
 ;; If you want to create a file, visit that file with C-x C-f,
 ;; then enter the text in that file's own buffer.
 
-06/29/14
+076/03/14
+
+This file is pantilt_commands_scratch_070314.txt
 
       /* Comand database START
       UP  : Move UP
@@ -31,6 +33,30 @@
 
       */
  
+
+
+
+CONNECTIONS for UNO R3
+Arduino      LSM303 board
+-------------------------
+     5V  ->  VIN
+    GND  ->  GND
+    SDA  ->  SDA
+    SCL  ->  SCL
+    
+    for MOTOR-1
+const int AzimLeftPin_init = 2;
+const int AzimRightPin_init = 3;
+const int ElevUpPin_init = 4;
+const int ElevDownPin_init = 5;
+
+// Laser Pointer Pin-- MAke sure it does not collide with motor control pins
+define LASER_POINTER_PIN 13
+
+#define AZIM_POTENC_PIN A0
+#define ELEV_POTENC_PIN A1
+
+
 
 
  $MAGHDG?!

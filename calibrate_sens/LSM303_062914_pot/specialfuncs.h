@@ -1,4 +1,6 @@
-#define DEBUGFLAG 0
+#define DEBUGFLAG 1
+// This is for different sensor calibrations
+# define MAG_SENSOR_ID 2
 
 // AXIS LABELS
 enum AxisLabelType {AZIM_AXIS = 1, ELEV_AXIS = 2};
@@ -37,10 +39,44 @@ assume EXT1 is the minimum vaue of te sensor reading and EXT2 is the maximum
 */
 
 // All angles are in units of 0.01 degrees
-const int AxDeadZone_EXT1[] = {400, -780};
-const int AxDeadZone_EXT2[] = {2900, 780} ;
+/* For AxDeadZone_EXT(1,2) and AxFeedbackEpsilon 
+each column represents a different sensor asociated with axis
+
+Column-1 : AZIMUTH axis using magnetic heading function
+           --angular, 36000 (360 degrees) periodicity, long
+Column-2 : ELEVATION axis using tiltsensor Y-axis Acceleration function
+           --linear
+Column-3 : AZIMUTH axis using potentiometer ENCODER Reading
+           --linear
+Column-4 : ELEVATION axis using potentiometer ENCODER Reading
+           --linear
+*/
+
+#if MAG_SENSOR_ID==1
+const int AxDeadZone_EXT1[] = {400, -780, 0, 385};
+const int AxDeadZone_EXT2[] = {2900, 780, 900, 650} ;
+#endif
+
+
+#if MAG_SENSOR_ID==2
+const int AxDeadZone_EXT1[] = {6700, -780, 0, 385};
+const int AxDeadZone_EXT2[] = {9400, 780, 900, 650} ;
+#endif
+
+/*
 // error correction residual during the feedback
-const int AxFeedbackEpsilon[] = {300, 10};
+// Units are 
+
+Column-1 : AZIMUTH axis using magnetic heading function
+           --angular, Units 0.01 degrees
+Column-2 : ELEVATION axis using tiltsensor Y-axis Acceleration function
+           --linear -UNIT: 1 mg
+Column-3 : AZIMUTH axis using potentiometer ENCODER Reading
+           --linear -UNIT: Least Significant Bi
+Column-4 : ELEVATION axis using potentiometer ENCODER Reading
+           --linear -UNIT: Least Significant Bit
+*/
+const int AxFeedbackEpsilon[] = {1500, 10, 2, 2};
 
 //keep converting from float to degrees
 
@@ -52,13 +88,13 @@ const int AxFeedbackEpsilon[] = {300, 10};
 // MovePositiveFunctionPt allows you to move towards EXT1 within the active zone and EXT2 within the deadzone,
 // likewise MoveNegativeFunctionPt allows you to move towards EXT2 within the negative zone and EXT1 within the deadzone
 
-void movetoTarget_1D_angular ( const int TargetReading,
+void movetoTarget_1D_angular ( const short & axisIndex, const int TargetReading,
                                long  (*ReadFunctionPt) (void),
                                void (*MovePositiveFunctionPt) (void),
                                void (*MoveNegativeFunctionPt) (void) )
 {
   static long CurrentReading;
-  static short axisIndex = 0;
+  
   // Low Pass filtered version
   static long CurrentReading_LP;
   // Low pass moving average numberof samples
@@ -220,13 +256,13 @@ void movetoTarget_1D_angular ( const int TargetReading,
 // MovePositiveFunctionPt allows you to move towards EXT1 within the active zone and EXT2 within the deadzone,
 // likewise MoveNegativeFunctionPt allows you to move towards EXT2 within the negative zone and EXT1 within the deadzone
 
-void movetoTarget_1D_linear ( const int TargetReading,
+void movetoTarget_1D_linear ( const short & axisIndex, const int TargetReading,
                               int  (*ReadFunctionPt) (void),
                               void (*MovePositiveFunctionPt) (void),
                               void (*MoveNegativeFunctionPt) (void) )
 {
   static int CurrentReading;
-  static short axisIndex = 1;
+ 
   // Low Pass filtered version
   static int CurrentReading_LP;
   // Low pass moving average numberof samples
@@ -303,10 +339,19 @@ void movetoTarget_1D_linear ( const int TargetReading,
   while (abs(CurrentReading - TargetReading_R) > epsilon_axis)
   {
     if (CurrentReading >= TargetReading_R)
+      {
+      #if DEBUGFLAG
+      Serial.print("Running negative function");
+      #endif
       MoveNegativeFunctionPt();
+      }
     else
+    {
+      #if DEBUGFLAG
+      Serial.print("Running positive function");
+      #endif
       MovePositiveFunctionPt();
-
+    }
     //Read the current value
     CurrentReading = ReadFunctionPt();
 
