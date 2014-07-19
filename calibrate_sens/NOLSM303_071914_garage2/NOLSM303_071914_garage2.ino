@@ -1,5 +1,12 @@
 /*
 
+-Revised on 07/19/2014
+ADded precompiler string to make the LSM303 magsensor optional
+
+#define ACCMAGSENS_CONNECTED 0  ---> LSM303 is connected
+#define ACCMAGSENS_CONNECTED 1
+
+
 -Revised on 06/30/2014
 Added commands to control a laser pointer
 
