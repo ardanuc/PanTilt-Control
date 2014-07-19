@@ -2,9 +2,7 @@
 ;; If you want to create a file, visit that file with C-x C-f,
 ;; then enter the text in that file's own buffer.
 
-076/03/14
-
-This file is pantilt_commands_scratch_070314.txt
+06/29/14
 
       /* Comand database START
       UP  : Move UP
@@ -57,8 +55,8 @@ define LASER_POINTER_PIN 13
 #define ELEV_POTENC_PIN A1
 
 
- $DN!
- $UP!
+
+
  $MAGHDG?!
  $MVTT1D 0 20000!
  $MVTT1D 0 12300!
