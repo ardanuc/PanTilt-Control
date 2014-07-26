@@ -2,9 +2,12 @@
 ;; If you want to create a file, visit that file with C-x C-f,
 ;; then enter the text in that file's own buffer.
 
-076/03/14
+07/30/14
 
-This file is pantilt_commands_scratch_070314.txt
+This file is pantilt_commands_scratch_073014.txt
+
+    
+  /* 
 
       /* Comand database START
       UP  : Move UP
@@ -22,6 +25,7 @@ This file is pantilt_commands_scratch_070314.txt
       MAGHDG? : Send Magnetic Heding Angle in Degrees
       AZENC?  : Send Azim Potentiometer Encoder Raw Data
       ELENC?  : Send Elevation Potentiometer Encoder Raw Data
+      PIXID?  : Send Pixel ID of the mirror
       LASON   : Turn the laser on
       LASOFF  : Turn the laser off
       LASTOG  : Toggle laser state
@@ -30,6 +34,7 @@ This file is pantilt_commands_scratch_070314.txt
       STOP   : Stop current selected motor
       STOPALL : Stop all the motors
       MVTT1D  :  Move to target 1D, takes two  parameters
+
 
       */
  
@@ -76,8 +81,11 @@ define LASER_POINTER_PIN 13
  $ACCXYZ?!
  $BXYZ?!
  $LASTOG!
+ $PIXID?!
 
 
 
 http://www.emacswiki.org/emacs/CopyingWholeLines#toc5
  $MAGHDG?!
+
+uploaded : 6 3 1 4 7 2 5 9

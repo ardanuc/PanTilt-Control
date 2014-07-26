@@ -100,7 +100,7 @@ const int ElevDownPin_init = 9;
 #define ELEV_POTENC_PIN A1
 
 // Precompiler Flag to indicate if LSM303 is connected or not
-#define ACCMAGSENS_CONNECTED 1
+#define ACCMAGSENS_CONNECTED 0
 
 // Flag to increase the ADC sampling call by 8 times, default prescaler is 128
 // this reduces it to 16

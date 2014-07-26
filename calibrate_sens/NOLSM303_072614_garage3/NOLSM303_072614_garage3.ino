@@ -1,5 +1,13 @@
 /*
 
+
+
+-Revised on 07/26/2014
+No more dropping the last 4 bit  of the accelerometer reading, to use the full
+16 bit resolution
+-Default settings are +-2g and 4g/2^16 =61micro g/LSB resolution
+- Added an ID, which is by default set to PIXEL_ID parameter
+
 -Revised on 07/19/2014
 ADded precompiler string to make the LSM303 magsensor optional
 
@@ -91,7 +99,7 @@ const int ElevDownPin_init = 9;
 #define MAX_COMMAND_STRING_LENGTH 40
 #define MAX_COMMAND_STRINGSTARTTEXT_LENGTH 10
 #define MAX_NUMBER_ARGUMETS 4
-#define DEBUGFLAG 1
+#define DEBUGFLAG 0
 
 #define LASER_POINTER_PIN 13
 
@@ -100,7 +108,7 @@ const int ElevDownPin_init = 9;
 #define ELEV_POTENC_PIN A1
 
 // Precompiler Flag to indicate if LSM303 is connected or not
-#define ACCMAGSENS_CONNECTED 1
+#define ACCMAGSENS_CONNECTED 0
 
 // Flag to increase the ADC sampling call by 8 times, default prescaler is 128
 // this reduces it to 16
@@ -114,9 +122,13 @@ const int ElevDownPin_init = 9;
 #ifndef sbi
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
-
 // This is for different sensor calibrations
 # define MAG_SENSOR_ID 2
+# define PIXEL_ID  8
+
+//  Pixel ID is a readonly parameter for numberin the pixel
+const int pixel_ID=PIXEL_ID;
+
 
 //Input String from Serial
 String inputString = "";
@@ -510,6 +522,7 @@ void loop() {
       MAGHDG? : Send Magnetic Heding Angle in Degrees
       AZENC?  : Send Azim Potentiometer Encoder Raw Data
       ELENC?  : Send Elevation Potentiometer Encoder Raw Data
+      PIXID?  : Send Pixel ID of the mirror
       LASON   : Turn the laser on
       LASOFF  : Turn the laser off
       LASTOG  : Toggle laser state
@@ -601,6 +614,11 @@ void loop() {
       {
 
         Serial.println(analogRead(ELEV_POTENC_PIN)); 
+      }
+      else if (commandStringStartText == "PIXID?")
+      {
+
+        Serial.println(pixel_ID); 
       }
          else if (commandStringStartText == "LASON")
       {
@@ -911,21 +929,21 @@ void printSelectMirror(void) {
 int ReadAccelerationX()
 {
   compass.read();
-  return compass.a.x >> 4;
+  return compass.a.x ;
 }
 
 // Read AccelerationY
 int ReadAccelerationY()
 {
   compass.read();
-  return compass.a.y >> 4;
+  return compass.a.y ;
 }
 
 // Read AccelerationZ
 int ReadAccelerationZ()
 {
   compass.read();
-  return compass.a.z >> 4;
+   return compass.a.z ;
 }
 
 
@@ -934,7 +952,7 @@ int PrintAccelerationXYZ()
 {
   compass.read();
   snprintf(report, sizeof(report), "%+6d\t%+6d\t%+6d",
-           compass.a.x >> 4, compass.a.y >> 4, compass.a.z >> 4);
+           compass.a.x , compass.a.y , compass.a.z );
   Serial.println(report);
 }
 
