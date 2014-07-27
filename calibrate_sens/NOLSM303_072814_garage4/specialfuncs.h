@@ -1,15 +1,17 @@
-#define DEBUGFLAG 1
-
-// Flag to skip Low pass filter procesing to speed up the main feedback loop
-#define PERFORM_LPF_PROCESSING 1
-// This is for different sensor calibrations
-# define MAG_SENSOR_ID 2
-
-// AXIS LABELS
-enum AxisLabelType {AZIM_AXIS = 1, ELEV_AXIS = 2};
 
 //function prototypes
 void TurnOffSelectedMirror();
+void MoveRightSelectedMirror (void);
+void MoveLeftSelectedMirror (void) ;
+void MoveUpSelectedMirror (void) ;
+void MoveDownSelectedMirror (void) ;
+int ReadAZIM_PotentiometerEncoder();
+int ReadELEV_PotentiometerEncoder();
+void ReadSerialCommand(void);
+void ExecuteMildCommandSet(void);
+void UpdateMotorActiveBooleans(void);
+void ReadandExecuteMildCommandSet(void);
+
 
 /* Minimum values of AXIS
 First axis maximum/minimum is azimuthal limitsof the dead zone
@@ -42,7 +44,7 @@ assume EXT1 is the minimum vaue of te sensor reading and EXT2 is the maximum
 */
 
 // All angles are in units of 0.01 degrees
-/* For AxDeadZone_EXT(1,2) and AxFeedbackEpsilon 
+/* For AxDeadZone_EXT(1,2) and AxFeedbackEpsilon
 each column represents a different sensor asociated with axis
 
 Column-1 : AZIMUTH axis using magnetic heading function
@@ -68,7 +70,7 @@ const int AxDeadZone_EXT2[] = {2900, 780, 1020, 687} ;
 
 /*
 // error correction residual during the feedback
-// Units are 
+// Units are
 
 Column-1 : AZIMUTH axis using magnetic heading function
            --angular, Units 0.01 degrees
@@ -97,11 +99,10 @@ void movetoTarget_1D_angular ( const short & axisIndex, const int TargetReading,
                                void (*MoveNegativeFunctionPt) (void) )
 {
   static long CurrentReading;
-  
+
   // Low Pass filtered version
   static long CurrentReading_LP;
-  // Low pass moving average numberof samples
-  static const short NSAMPLES_LP = 5;
+
   static long data_array_LP[NSAMPLES_LP];
   // temporary variable to store the sum of the variables
   static long temp_LP = 0;
@@ -164,49 +165,49 @@ void movetoTarget_1D_angular ( const short & axisIndex, const int TargetReading,
 
   //initialize the sum
   temp_LP = NSAMPLES_LP * CurrentReading;
- 
+
   // update the low passed version
-   CurrentReading_LP=CurrentReading;
+  CurrentReading_LP = CurrentReading;
 
   // Look at the target value and try to go to the closerl
 
 
   // main feedback loop
-  #if DEBUGFLAG
+#if DEBUGFLAG
   Serial.println("Moving: START!");
- 
- #endif
- 
+
+#endif
+
   while (abs(CurrentReading - TargetReading_R) > epsilon_axis)
   {
-    if 
+    if
     (
-    ((CurrentReading <= TargetReading_R)&& 
-    ((ext_1>=TargetReading_R)||(ext_1<=CurrentReading)))
-    ||
-    ((CurrentReading>=ext_1)&& (ext_1>=TargetReading))
-    ||
-    ((CurrentReading>=TargetReading_R)&& (ext_1>=TargetReading_R))
+      ((CurrentReading <= TargetReading_R) &&
+       ((ext_1 >= TargetReading_R) || (ext_1 <= CurrentReading)))
+      ||
+      ((CurrentReading >= ext_1) && (ext_1 >= TargetReading))
+      ||
+      ((CurrentReading >= TargetReading_R) && (ext_1 >= TargetReading_R))
     )
 
     {
-      #if DEBUGFLAG
+#if DEBUGFLAG
       Serial.print("Running positive function");
-      #endif
+#endif
       MovePositiveFunctionPt();
     }
     else
     {
-      #if DEBUGFLAG
+#if DEBUGFLAG
       Serial.print("Running negative function");
-      #endif
+#endif
       MoveNegativeFunctionPt();
     }
 
     //Read the current value
-    CurrentReading = ReadFunctionPt()%36000;
+    CurrentReading = ReadFunctionPt() % 36000;
 
-
+#if PERFORM_LPF_PROCESSING ==1
 
     // Update the Low pass version
     index_LP = (index_LP + 1) % NSAMPLES_LP;
@@ -214,6 +215,8 @@ void movetoTarget_1D_angular ( const short & axisIndex, const int TargetReading,
     data_array_LP[index_LP] = CurrentReading;
 
     CurrentReading_LP = (temp_LP / (long)NSAMPLES_LP);
+
+#endif
 
 #if DEBUGFLAG
     Serial.print(" ACTU: ");
@@ -265,7 +268,7 @@ void movetoTarget_1D_linear ( const short & axisIndex, const int TargetReading,
                               void (*MoveNegativeFunctionPt) (void) )
 {
   static int CurrentReading;
- 
+
 
   // Low Pass filtered version
   static int CurrentReading_LP;
@@ -275,7 +278,7 @@ void movetoTarget_1D_linear ( const short & axisIndex, const int TargetReading,
   static long temp_LP = 0;
   //index for LP filter
   static short index_LP;
-  
+
 
 
   // Realizable Target Reading based on the dead zone limits
@@ -318,7 +321,7 @@ void movetoTarget_1D_linear ( const short & axisIndex, const int TargetReading,
 
   //Read the current value
   CurrentReading = ReadFunctionPt();
-  
+
 
 
   //initialize the low pass filtered version with this inital reading
@@ -332,31 +335,31 @@ void movetoTarget_1D_linear ( const short & axisIndex, const int TargetReading,
   temp_LP = NSAMPLES_LP * CurrentReading;
 
   // update the low passed version
-   CurrentReading_LP=CurrentReading;
-   
-   
+  CurrentReading_LP = CurrentReading;
+
+
   // Look at the target value and try to go to the closerl
 
   // main feedback loop
-  #if DEBUGFLAG
+#if DEBUGFLAG
   Serial.println("Moving!");
 
- #endif
- 
+#endif
+
   while (abs(CurrentReading - TargetReading_R) > epsilon_axis)
   {
     if (CurrentReading >= TargetReading_R)
-      {
-      #if DEBUGFLAG
+    {
+#if DEBUGFLAG
       Serial.print("Running negative function");
-      #endif
+#endif
       MoveNegativeFunctionPt();
-      }
+    }
     else
     {
-      #if DEBUGFLAG
+#if DEBUGFLAG
       Serial.print("Running positive function");
-      #endif
+#endif
       MovePositiveFunctionPt();
     }
     //Read the current value
@@ -371,8 +374,8 @@ void movetoTarget_1D_linear ( const short & axisIndex, const int TargetReading,
     data_array_LP[index_LP] = CurrentReading;
 
     CurrentReading_LP = (int)(temp_LP / (long)NSAMPLES_LP);
-    
-#endif    
+
+#endif
 
 #if DEBUGFLAG
     Serial.print(" ACTU: ");
@@ -384,15 +387,22 @@ void movetoTarget_1D_linear ( const short & axisIndex, const int TargetReading,
     Serial.print(" Target-R: ");
     Serial.println(TargetReading_R);
 
-
 #endif
+
+    // See if there are other commands sent to serial port
+    // read the command if there s any Serial bbyte available
+    if (Serial.available() > 0) {
+
+      ReadandExecuteMildCommandSet();
+
+    } //If Serial.available()
 
   }
 
 #if DEBUGFLAG
   Serial.println("Moving: DONE!");
-#endif  
-  
+#endif
+
   //Since we are done-- turn off the motor
   TurnOffSelectedMirror();
 
@@ -402,44 +412,44 @@ void movetoTarget_1D_linear ( const short & axisIndex, const int TargetReading,
 }
 
 
-// movetoTarget_2D_linear runs azimuth and levation feedback subroutines 
+// movetoTarget_2D_linear runs azimuth and levation feedback subroutines
 // consecutively based on target potentiometer readings.
 // It runs both feedbacks simultaneously to make it quicker than consecutiv running
 
 
 
-void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int TargetReading_ELEV_Pot)
-// @param: TargetReading_AZIM_Pot:  Targeted Potentiometer Reading of the AZIMUTh Axis
-// @param: TargetReading_ELEV_Pot:  Targeted Potentiometer Reading
+void movetoTarget_2D_linear ( const int TargetReading_AZIM, const int TargetReading_ELEV)
+// @param: TargetReading_AZIM:  Targeted Potentiometer Reading of the AZIMUTh Axis
+// @param: TargetReading_ELEV:  Targeted Potentiometer Reading
 {
 
-  
-  
+
+
   /*
-          // Positive and Negative Function Pointers for Azim and ELEV      
-       
+          // Positive and Negative Function Pointers for Azim and ELEV
+
          // Pointer to function to action towards increasing the Value Read by ReadFunctionPt()
         MovePositiveFunctionPt_AZIM = &MoveRightSelectedMirror;
 
         // Pointer to function to action towards decreasing the Value Read by ReadFunctionPt()
         MoveNegativeFunctionPt_AZIM= &MoveLeftSelectedMirror;
-        
+
         // Pointer to function to action towards increasing the Value Read by ReadFunctionPt()
         MovePositiveFunctionPt_ELEV = &MoveUpSelectedMirror;
 
         // Pointer to function to action towards decreasing the Value Read by ReadFunctionPt()
         MoveNegativeFunctionPt_ELEV= &MoveDownSelectedMirror;
-          
-*/
-  static const void (*MovePositiveFunctionPt_AZIM) (void)= &MoveRightSelectedMirror;
-  static const void (*MoveNegativeFunctionPt_AZIM) (void)= &MoveLeftSelectedMirror;
-  static const void (*MovePositiveFunctionPt_ELEV) (void)= &MoveUpSelectedMirror;
-  static const void (*MoveNegativeFunctionPt_ELEV) (void)= &MoveDownSelectedMirror;
-  
+
+  */
+  static void (*MovePositiveFunctionPt_AZIM) (void) = &MoveRightSelectedMirror;
+  static void (*MoveNegativeFunctionPt_AZIM) (void) = &MoveLeftSelectedMirror;
+  static void (*MovePositiveFunctionPt_ELEV) (void) = &MoveUpSelectedMirror;
+  static void (*MoveNegativeFunctionPt_ELEV) (void) = &MoveDownSelectedMirror;
+
   static int CurrentReading_AZIM, CurrentReading_ELEV;
- 
+
   // Low Pass filtered version
-  static int CurrentReading_LP_AZIM,CurrentReading_LP_ELEV;
+  static int CurrentReading_LP_AZIM, CurrentReading_LP_ELEV;
 
   static int data_array_LP_AZIM[NSAMPLES_LP], data_array_LP_ELEV[NSAMPLES_LP];
   // temporary variable to store the sum of the variables
@@ -452,24 +462,24 @@ void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int Target
   // The angular extremes of the deadzone
   static int ext_1_AZIM, ext_2_AZIM, epsilon_axis_AZIM;
   static int ext_1_ELEV, ext_2_ELEV, epsilon_axis_ELEV;
-   
+
   ext_1_AZIM = AxDeadZone_EXT1[2];
   ext_2_AZIM = AxDeadZone_EXT2[2];
   epsilon_axis_AZIM = (int) AxFeedbackEpsilon[2];
-  
+
   ext_1_ELEV = AxDeadZone_EXT1[3];
   ext_2_ELEV = AxDeadZone_EXT2[3];
   epsilon_axis_ELEV = (int) AxFeedbackEpsilon[3];
 
   // flag to indicate dead zone
-  static bool flag_dead_zone_AZIM=false, flag_dead_zone_ELEV=false;
+  static bool flag_dead_zone_AZIM = false, flag_dead_zone_ELEV = false;
   //initialize to false initially
   flag_dead_zone_AZIM = false;
   flag_dead_zone_ELEV = false;
 
 
   // First determine if TargetReading  is in the deadzone or not
-  
+
   if (!(ext_2_AZIM >= ext_1_AZIM))
   { // in case ext_2 is not entered as the maximum , swap the variables
     ext_2_AZIM  = AxDeadZone_EXT1[2];
@@ -477,7 +487,7 @@ void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int Target
 
   }
 
-  if (!(ext_2_ELEV >= ext_1_ELEV)
+  if (!(ext_2_ELEV >= ext_1_ELEV))
   { // in case ext_2 is not entered as the maximum , swap the variables
     ext_2_ELEV  = AxDeadZone_EXT1[3];
     ext_1_ELEV  = AxDeadZone_EXT2[3];
@@ -487,7 +497,7 @@ void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int Target
 
   flag_dead_zone_AZIM = (TargetReading_AZIM < ext_1_AZIM) || (TargetReading_AZIM > ext_2_AZIM);
   flag_dead_zone_ELEV = (TargetReading_ELEV < ext_1_ELEV) || (TargetReading_ELEV > ext_2_ELEV);
-  
+
   // If the target is in the dead zone, it is also desired to move tothe closest
   if (!flag_dead_zone_AZIM)
   {
@@ -499,8 +509,8 @@ void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int Target
   {
     TargetReading_R_AZIM = (TargetReading_AZIM < ext_1_AZIM) ? ext_1_AZIM : ext_2_AZIM;
   }
-  
-    // If the target is in the dead zone, it is also desired to move tothe closest
+
+  // If the target is in the dead zone, it is also desired to move tothe closest
   if (!flag_dead_zone_ELEV)
   {
     // not in dead zone, so no problem
@@ -515,7 +525,7 @@ void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int Target
   //Read the current value
   CurrentReading_AZIM = ReadAZIM_PotentiometerEncoder();
   CurrentReading_ELEV = ReadELEV_PotentiometerEncoder();
-  
+
 
 
   //initialize the low pass filtered version with this inital reading
@@ -524,65 +534,65 @@ void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int Target
   {
     data_array_LP_AZIM[index_LP_AZIM] = CurrentReading_AZIM;
   }
-    //initialize the low pass filtered version with this inital reading
+  //initialize the low pass filtered version with this inital reading
 
   for (index_LP_ELEV = 0; index_LP_ELEV < NSAMPLES_LP; index_LP_ELEV++)
   {
     data_array_LP_ELEV[index_LP_ELEV] = CurrentReading_ELEV;
   }
-  
+
 
   //initialize the sum
   temp_LP_AZIM = NSAMPLES_LP * CurrentReading_AZIM;
-    temp_LP_ELEV = NSAMPLES_LP * CurrentReading_ELEV;
+  temp_LP_ELEV = NSAMPLES_LP * CurrentReading_ELEV;
 
   // update the low passed version
-   CurrentReading_LP_AZIM=CurrentReading_AZIM;
-    CurrentReading_LP_AZIM=CurrentReading_ELEV;
-  
+  CurrentReading_LP_AZIM = CurrentReading_AZIM;
+  CurrentReading_LP_AZIM = CurrentReading_ELEV;
+
   // Look at the target value and try to go to the closerl
   // Run nested  AZIM and ELEV feedback loops
   // main feedback loop
-  #if DEBUGFLAG
+#if DEBUGFLAG
   Serial.println("Moving!");
 
- #endif
- 
-  while (abs ((CurrentReading_AZIM - TargetReading_R_AZIM) > epsilon_axis_AZIM)
-   || (CurrentReading_ELEV - TargetReading_R_ELEV) > epsilon_axis_ELEV))
-  
+#endif
+
+  while ((abs (CurrentReading_AZIM - TargetReading_R_AZIM) > epsilon_axis_AZIM)
+         || (abs(CurrentReading_ELEV - TargetReading_R_ELEV) > epsilon_axis_ELEV))
+
   {
     if (CurrentReading_AZIM >= TargetReading_R_AZIM)
-      {
-      #if DEBUGFLAG
-      Serial.print("Running negative function");
-      #endif
+    {
+#if DEBUGFLAG
+      Serial.print("AZIM:Running negative function");
+#endif
       MoveNegativeFunctionPt_AZIM();
-      }
+    }
     else
     {
-      #if DEBUGFLAG
-      Serial.print("Running positive function");
-      #endif
+#if DEBUGFLAG
+      Serial.print("AZIM:Running positive function");
+#endif
       MovePositiveFunctionPt_AZIM();
     }
-    
-    
-     if (CurrentReading_ELEV >= TargetReading_R_ELEV)
-      {
-      #if DEBUGFLAG
-      Serial.print("Running negative function");
-      #endif
+
+
+    if (CurrentReading_ELEV >= TargetReading_R_ELEV)
+    {
+#if DEBUGFLAG
+      Serial.println("ELEV:Running negative function");
+#endif
       MoveNegativeFunctionPt_ELEV();
-      }
+    }
     else
     {
-      #if DEBUGFLAG
-      Serial.print("Running positive function");
-      #endif
+#if DEBUGFLAG
+      Serial.println("ELEV:Running positive function");
+#endif
       MovePositiveFunctionPt_ELEV();
     }
-    
+
     //Read the current value
     CurrentReading_AZIM = ReadAZIM_PotentiometerEncoder();
     CurrentReading_ELEV = ReadELEV_PotentiometerEncoder();
@@ -592,19 +602,19 @@ void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int Target
 
     // Update the Low pass version
     index_LP_AZIM = (index_LP_AZIM + 1) % NSAMPLES_LP;
-    temp_LP_AZIM += CurrentReading_AZIM - data_array_LP_AZIM[index_LP];
-    data_array_LP_AZIM[index_LP] = CurrentReading_AZIM;
+    temp_LP_AZIM += CurrentReading_AZIM - data_array_LP_AZIM[index_LP_AZIM];
+    data_array_LP_AZIM[index_LP_AZIM] = CurrentReading_AZIM;
 
     CurrentReading_LP_AZIM = (int)(temp_LP_AZIM / (long)NSAMPLES_LP);
-    
-       // Update the Low pass version
+
+    // Update the Low pass version
     index_LP_ELEV = (index_LP_ELEV + 1) % NSAMPLES_LP;
-    temp_LP_ELEV += CurrentReading_ELEV - data_array_LP_ELEV[index_LP];
-    data_array_LP_ELEV[index_LP] = CurrentReading_ELEV;
+    temp_LP_ELEV += CurrentReading_ELEV - data_array_LP_ELEV[index_LP_ELEV];
+    data_array_LP_ELEV[index_LP_ELEV] = CurrentReading_ELEV;
 
     CurrentReading_LP_ELEV = (int)(temp_LP_ELEV / (long)NSAMPLES_LP);
-    
-#endif    
+
+#endif
 
 #if DEBUGFLAG
     Serial.print(" AZIM-ACTU: ");
@@ -626,18 +636,27 @@ void movetoTarget_2D_linear ( const int TargetReading_AZIM_Pot, const int Target
     Serial.println(TargetReading_R_ELEV);
 #endif
 
+    // See if there are other commands sent to serial port
+    // read the command if there s any Serial bbyte available
+    if (Serial.available() > 0) {
+
+      ReadandExecuteMildCommandSet();
+
+    } //If Serial.available()
+
+
+
   }
 
 #if DEBUGFLAG
   Serial.println("Moving: DONE!");
-#endif  
-  
+#endif
+
   //Since we are done-- turn off the motor
   TurnOffSelectedMirror();
-  
-  
-    
-  
-  
-  
+
+
 }
+
+
+
