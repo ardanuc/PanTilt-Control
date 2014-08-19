@@ -1,0 +1,96 @@
+;; This buffer is for notes you don't want to save, and for Lisp evaluation.
+;; If you want to create a file, visit that file with C-x C-f,
+;; then enter the text in that file's own buffer.
+
+07/30/14
+
+This file is pantilt_commands_scratch_073014.txt
+
+    
+  /* 
+
+      /* Comand database START
+      UP  : Move UP
+      DN  : Move DOWN
+      LT  : Move LEFT
+      RT  : Move RIGHT
+      BX? : Send BX Value
+      BY? : Send BY Value
+      BZ? : Send BZ Value
+      BXYZ? :Send BX"\t"BY"\t"BZ"\n"
+      ACCX? : Send ACCX Value
+      ACCY? : Send ACCY Value
+      ACCZ? : Send ACCZ Value
+      ACCXYZ? : Send ACCX"\t"ACCY"\t"ACCZ"\n" Value
+      MAGHDG? : Send Magnetic Heding Angle in Degrees
+      AZENC?  : Send Azim Potentiometer Encoder Raw Data
+      ELENC?  : Send Elevation Potentiometer Encoder Raw Data
+      PIXID?  : Send Pixel ID of the mirror
+      LASON   : Turn the laser on
+      LASOFF  : Turn the laser off
+      LASTOG  : Toggle laser state
+      STOPUD  : Stop Up-Down Motor of the Selected Mirror
+      STOPLR  : Stop Left-Right Mirror of the Selected Mirror
+      STOP   : Stop current selected motor
+      STOPALL : Stop all the motors
+      MVTT1D  :  Move to target 1D, takes two  parameters
+
+
+      */
+ 
+
+
+
+CONNECTIONS for UNO R3
+Arduino      LSM303 board
+-------------------------
+     5V  ->  VIN
+    GND  ->  GND
+    SDA  ->  SDA
+    SCL  ->  SCL
+    
+    for MOTOR-1
+const int AzimLeftPin_init = 2;
+const int AzimRightPin_init = 3;
+const int ElevUpPin_init = 4;
+const int ElevDownPin_init = 5;
+
+// Laser Pointer Pin-- MAke sure it does not collide with motor control pins
+define LASER_POINTER_PIN 13
+
+#define AZIM_POTENC_PIN A0
+#define ELEV_POTENC_PIN A1
+
+
+ $DN!
+ $UP!
+ $MAGHDG?!
+ $MVTT1D 0 20000! 
+ $MVTT1D 0 12300!
+ $MVTT1D 0 20000!
+ $MVTT1D 1 56!
+ $MVTT1D 1 -56!
+ $MVTT1D 1  -560!
+ $MVTT1D 1 560!
+ $MVTT1D 2 300!
+ $MVTT1D 2 300!
+ $MVTT1D 2 800!
+ $MVTT1D 3 400!
+ $MVTT1D 3 685!
+ $AZENC?!
+ $ELENC?!
+ $ACCXYZ?!
+ $MOTONAZ?!
+ $MOTONEL?!
+ $BXYZ?!
+ $LASTOG!
+ $PIXID?!
+ $MVTT2D 500 600!
+ $MVTT2D 700 400!
+
+
+
+http://www.emacswiki.org/emacs/CopyingWholeLines#toc5
+ $MAGHDG?!
+
+uploaded : 8 6 3 10 1 4 7 2

@@ -120,8 +120,7 @@ const int ElevDownPin_init = 9;
 #define AZIM_POTENC_PIN A0
 #define ELEV_POTENC_PIN A1
 
-// Precompiler Flag to indicate if LSM303 is connected or not
-#define ACCMAGSENS_CONNECTED 1
+
 
 // Flag to increase the ADC sampling call by 8 times, default prescaler is 128
 // this reduces it to 16
@@ -132,14 +131,18 @@ const int ElevDownPin_init = 9;
 #ifndef cbi
 #define cbi(sfr, bit) (_SFR_BYTE(sfr) &= ~_BV(bit))
 #endif
-#ifndef sbi
+#ifndef sbif
 #define sbi(sfr, bit) (_SFR_BYTE(sfr) |= _BV(bit))
 #endif
 // This is for different sensor calibrations
 # define MAG_SENSOR_ID 2l
 # define PIXEL_ID  9
 
+// Precompiler Flag to indicate if LSM303 is connected or not
+#define ACCMAGSENS_CONNECTED 0
 
+//Below is used as a safety for max-min 
+#define MAXMINPOT_SAFETY_EPSILON 1
 
 /* Include the standard Wire library */
 #include <Wire.h>
@@ -366,6 +369,16 @@ void setup() {
 
   // Turn off all the motors
   TurnOffAllMotors();
+
+
+
+// add some safety for min-max
+for (tempVar=0; tempVar<4;tempVar++)
+{
+AxDeadZone_EXT1[tempVar]=AxDeadZone_EXT1[tempVar]+MAXMINPOT_SAFETY_EPSILON;
+AxDeadZone_EXT2[tempVar]=AxDeadZone_EXT2[tempVar]-MAXMINPOT_SAFETY_EPSILON;
+}
+
 
 
 }

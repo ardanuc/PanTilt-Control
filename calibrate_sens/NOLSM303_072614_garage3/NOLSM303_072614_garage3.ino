@@ -39,7 +39,7 @@ CommandEndChar='!';
 So the format of the command is
 
 
-<CommandStartChar><CommandString><CommandEndChar><'\n' OR  '\r'>
+<CommandStartChar><CommandString><CommandEndChar>
 
 Options for the CommandString are
 SR<space><number> Eg: If  'SR 1' It will select Row 1
@@ -114,9 +114,6 @@ const int ElevDownPin_init = 9;
 // this reduces it to 16
 // See the code in: http://forum.arduino.cc/index.php/topic,6549.0.html
 #define FASTADC 1
-
-
-
 
 // defines for setting and clearing register bits
 #ifndef cbi
@@ -193,10 +190,7 @@ bool LaserState= false;
 
 
 // variable to keep track of whhether the motor is active or not
-
-bool AZ_motorActive =false;
-bool EL_motorActive =false;
-// var
+bool motorActive = false;
 
 short MotorPinList[nRowMotor][nColMotor][4] = {
   AzimLeftPin_init, AzimRightPin_init, ElevUpPin_init, ElevDownPin_init
@@ -529,8 +523,6 @@ void loop() {
       AZENC?  : Send Azim Potentiometer Encoder Raw Data
       ELENC?  : Send Elevation Potentiometer Encoder Raw Data
       PIXID?  : Send Pixel ID of the mirror
-      MOTONAZ?: Send whether Azimuth motor is on or not
-      MOTONEL?: Send whether Elevation motor is on or not
       LASON   : Turn the laser on
       LASOFF  : Turn the laser off
       LASTOG  : Toggle laser state
@@ -627,16 +619,6 @@ void loop() {
       {
 
         Serial.println(pixel_ID); 
-      }
-         else if (commandStringStartText == "MOTONAZ?")
-      {
-
-        Serial.println(AZ_motorActive); 
-      }
-        else if (commandStringStartText == "MOTONEL?")
-      {
-
-        Serial.println(EL_motorActive); 
       }
          else if (commandStringStartText == "LASON")
       {
@@ -812,19 +794,27 @@ void loop() {
 
 
 
-    // if any of the left, right, up, down vairables is true then make the corresponding 
-    // motorACtive booleans true
-    
-   AZ_motorActive= LeftMotorState[selectedRow][selectedCol] || RightMotorState[selectedRow][selectedCol];
-   EL_motorActive=UpMotorState[selectedRow][selectedCol] || DownMotorState[selectedRow][selectedCol];
-                  
+    // if any of the left, right, up, down vairables is true then the motor is active
+
+    motorActive = LeftMotorState[selectedRow][selectedCol] || RightMotorState[selectedRow][selectedCol] ||
+                  UpMotorState[selectedRow][selectedCol] || DownMotorState[selectedRow][selectedCol];
 
 
 
 
   } // if serial
 
+  /*
+    // print acceleration if motor is activel
+    if (motorActive)
+    {
+      printAccelarationXY();
+      printMagneticFieldXYZ();
+      Serial.println();
+    }
 
+
+  */
 
 } //while loop
 
