@@ -31,7 +31,7 @@ This file is pantilt_commands_scratch_080214.txt
     PIXID?  : Send Pixel ID of the mirror
     MOTONAZ?: Send whether Azimuth motor is on or not
     MOTONEL?: Send whether Elevation motor is on or not
-    GETEXT? : 
+    GETEXT? : Get Dead Zone 
     LASON   : Turn the laser on
     LASOFF  : Turn the laser off
     LASTOG  : Toggle laser state
@@ -102,7 +102,6 @@ define LASER_POINTER_PIN 13
  $STOPLR!
  $GETEXT? 1 2!
  $GETEXT? 0 2!
- $SETEXT 0 2 512!
 
 
 
