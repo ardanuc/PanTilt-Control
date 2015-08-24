@@ -10,43 +10,61 @@ This file is pantilt_commands_scratch_080214.txt
   /* 
 
  
+/* Comand database START
+      UP     : Move UP
+      DN     : Move DOWN
+      LT     : Move LEFT
+      RT     : Move RIGHT
+      BX? : Send BX Value
+      BY? : Send BY Value
+      BZ? : Send BZ Value
+      BXYZ? :Send BX"\t"BY"\t"BZ"\n"
+      ACCX? : Send ACCX Value
+      ACCY? : Send ACCY Value
+      ACCZ? : Send ACCZ Value
+      ACCXYZ? : Send ACCX"\t"ACCY"\t"ACCZ"\n" Value
+      MAGHDG? : Send Magnetic Heding Angle in Degrees
+      AZENC?  : Send Azim Potentiometer Encoder Raw Data
+      ELENC?  : Send Elevation Potentiometer Encoder Raw Data
+      PIXID?  : Send Pixel ID of the mirror
+      MOTONAZ?: Send whether Azimuth motor is on or not
+      MOTONEL?: Send whether Elevation motor is on or not
+      GETEXT? : Get the EXT values of the AxDeadZone min and max parameters 
+      LASON   : Turn the laser on
+      LASOFF  : Turn the laser off
+      LASTOG  : Toggle laser state
+      STOPUD  : Stop Up-Down Motor of the Selected Mirror
+      STOPLR  : Stop Left-Right Mirror of the Selected Mirror
+      STOP    : Stop current selected motor
+      STOPALL : Stop all the motors
+      SETEXT  : Set the EXT values of the AxDeadZone min and max parameters 
+      MVTT1D  :  Move to target 1D, takes two  parameters axis index and target value
+      MVTT2D  :  Move to target 2D in AZIM and ELEC, takes two  target potentiometer values
+      */
+      // NOwow perform the command (Note that lowercase commands are
+      // already converted to  Uppercase
+
+ 
 
 
-    /* Comand database START
-    UP     : Move UP
-    DN     : Move DOWN
-    LT     : Move LEFT
-    RT     : Move RIGHT
-    BX? : Send BX Value
-    BY? : Send BY Value
-    BZ? : Send BZ Value
-    BXYZ? :Send BX"\t"BY"\t"BZ"\n"
-    ACCX? : Send ACCX Value
-    ACCY? : Send ACCY Value
-    ACCZ? : Send ACCZ Value
-    ACCXYZ? : Send ACCX"\t"ACCY"\t"ACCZ"\n" Value
-    MAGHDG? : Send Magnetic Heding Angle in Degrees
-    AZENC?  : Send Azim Potentiometer Encoder Raw Data
-    ELENC?  : Send Elevation Potentiometer Encoder Raw Data
-    PIXID?  : Send Pixel ID of the mirror
-    MOTONAZ?: Send whether Azimuth motor is on or not
-    MOTONEL?: Send whether Elevation motor is on or not
-    GETEXT? : Get Dead Zone 
-    LASON   : Turn the laser on
-    LASOFF  : Turn the laser off
-    LASTOG  : Toggle laser state
-    STOPUD  : Stop Up-Down Motor of the Selected Mirror
-    STOPLR  : Stop Left-Right Mirror of the Selected Mirror
-    STOP   : Stop current selected motor
-    STOPALL : Stop all the motors
-    MVTT1D  :  Move to target 1D, takes two  parameters axis index and target value
-    MVTT2D  :  Move to target 2D in AZIM and ELEC, takes two  target potentiometer values
-    */
-    // NOwow perform the command (Note that lowercase commands are
-    // already converted to  Uppercase
 
       */
  
+
+// Axis labels for MVTT1D and 2D axis labels
+
+    // @param: axisIndex:  Targeted Axis indicator from 0-3
+    //
+    //         /*  Feedback axes are determined based on the following
+    // axisIndex=0, Column-1 : AZIMUTH axis using magnetic heading function
+    //            --angular, 36000 (360 degrees) periodicity, long
+    // axisIndex=1,Column-2 : ELEVATION axis using tiltsensor Y-axis Acceleration function
+    //            --linear
+    // axisIndex=2, Column-3 : AZIMUTH axis using potentiometer ENCODER Reading
+    //            --linear
+    // axisIndex=3, Column-4 : ELEVATION axis using potentiometer ENCODER Reading
+    //            --linear
+    // @param: extremeValue:  readValue
 
 
 
@@ -81,11 +99,11 @@ define LASER_POINTER_PIN 13
  $MVTT1D 1 -56!
  $MVTT1D 1  -560!
  $MVTT1D 1 560!
- $MVTT1D 2 600!
+ $MVTT1D 2 400!
  $MVTT1D 2 700!
  $MVTT1D 2 800!
  $MVTT1D 3 400!
- $MVTT1D 3 685!
+ $MVTT1D 3 600!
  $STOP!
  $AZENC?!
  $ELENC?!
@@ -102,7 +120,8 @@ define LASER_POINTER_PIN 13
  $STOPLR!
  $GETEXT? 1 2!
  $GETEXT? 0 2!
-
+ $SETEXT 1 2 100!      // Sets the minimum  hard limit of azimuth axis to 100
+ $SETEXT 0 2 900!      //Sets the maximum  hard limit of azimuth axis to 900
 
 
 http://www.emacswiki.org/emacs/CopyingWholeLines#toc5

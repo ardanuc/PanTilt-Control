@@ -59,8 +59,8 @@
           */
 
     // set extreme points to very non limiting values
-                     long AxDeadZone_EXT1[] = {400L, -780, 500, 501};
-                     long AxDeadZone_EXT2[] = {2900L, 780, 502, 503} ;
+                     long AxDeadZone_EXT1[] = {400L, -780, 100, 370};
+                     long AxDeadZone_EXT2[] = {2900L, 780, 900, 650} ;
 
 
     /*
